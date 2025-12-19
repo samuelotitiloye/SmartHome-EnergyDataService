@@ -1,0 +1,79 @@
+services:
+  jaeger:
+    image: quay.io/jaegertracing/all-in-one:1.55
+    container_name: jaeger
+    ports:
+    - "16686:16686" # UI
+    - "4317:4317" # OTLP gRPC
+    - "4318:4318" # OTLP HTTP
+    - "6831:6831/udp" # Jaeger agent (optional)
+    environment:
+    - COLLECTOR_OTLP_ENABLED=true
+    - LOG_LEVEL=debug
+    networks:
+    - smarthome
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+    - ./Prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    - ./Prometheus/rules:/etc/prometheus/rules
+    command:  
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    ports:
+      - "9090:9090"
+    networks:
+    - smarthome
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+    - "3000:3000"
+    environment:
+    - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+    - ./observability/grafana/provisioning:/etc/grafana/provisioning
+    networks:
+    - smarthome
+
+  alertManager:
+    image: prom/alertmanager:v0.27.0
+    container_name: alertManager
+    volumes:
+    - ./Prometheus/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    command:
+    - "--config.file=/etc/alertmanager/alertmanager.yml"
+    ports:
+    - "9093:9093"
+    networks:
+    - smarthome
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: mailhog
+    ports:
+    - "8025:8025"
+    - "1025:1025"
+    networks:
+    - smarthome
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: cadvisor
+    restart: unless-stopped
+    ports:
+    - "8081:8080"
+    volumes:
+    - /:/rootfs:ro
+    - /var/run:/var/run:rw
+    - /sys:/sys:ro
+    - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+    - smarthome
+
+networks:
+  smarthome:
+    external: true

@@ -1,0 +1,30 @@
+groups:
+- name: deviceservice-alerts
+  rules:
+  - alert: HighRequestLatency
+    expr: histogram_quantile(0.9, sum(rate(http_server_request_duration_seconds_bucket[1m])) by (le))
+      > 0.5
+    for: 30s
+    labels:
+      severity: warning
+    annotations:
+      summary: "High request latency detected"
+      description: "90th percentile request latency is above 0.5s"
+
+  - alert: HighRequestRate
+    expr: sum(rate(http_server_requests_received_total[1m])) > 50
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High request rate detected"
+      description: "More than 50 requests/sec received"
+
+  - alert: TooMany5xx
+    expr: sum(rate(http_server_requests_errors_total[1m])) > 5
+    for: 30s
+    labels:
+      severity: critical
+    annotations:
+      summary: "High 5xx error rate"
+      description: "The service is returning 5xx errors at a high rate"
